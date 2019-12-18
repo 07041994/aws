@@ -24,7 +24,7 @@ def lambda_handler(event,context):
     s3_prefix = 'product3'
     p2=cleaning(filename)
     bytes_to_write = p2.to_csv(None).encode()
-    fs = s3fs.S3FileSystem(key='AKIAIRR6OFVAQA2UHCGQ', secret='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')
+    fs = s3fs.S3FileSystem(key=API_key, secret=Secret_key)
     with fs.open('s3://aman19/file.csv', 'wb') as f:
         f.write(bytes_to_write)
     print(p2)
@@ -38,7 +38,7 @@ def cleaning(filename):
     s3_output_path = "s3://{}/{}/output_catg".format(s3_bucket, s3_prefix)
     s3_filepath = "s3://{}/{}".format(s3_bucket,filename )
     #p=pd.read_csv("s3://aman19/wal1.csv")
-    s3_client = boto3.client('s3',aws_access_key_id='AKIAIRR6OFVAQA2UHCGQ',aws_secret_access_key='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')
+    s3_client = boto3.client('s3',aws_access_key_id=Api_key',aws_secret_access_key=Secret_key)
     response = s3_client.get_object(Bucket="aman19",Key="wal1.csv")
     p = pd.read_csv(response["Body"])
     
