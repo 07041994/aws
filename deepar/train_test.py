@@ -18,7 +18,7 @@ random.seed(42)
 def lambda_handler(event,context):
     file=event['file']
     
-    s3_client = boto3.client('s3',aws_access_key_id='AKIAIRR6OFVAQA2UHCGQ',aws_secret_access_key='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')
+    s3_client = boto3.client('s3',aws_access_key_id=api_key,aws_secret_access_key=Secret_key)
     response = s3_client.get_object(Bucket="aman19",Key=file)
     p = pd.read_csv(response["Body"])
     p2=p.iloc[:,1:]
