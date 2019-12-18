@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  ExecuteStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AllowCWEServiceToAssumeRole
+          Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - events.amazonaws.com
+      Path: /
+      Policies:
+      - PolicyName: ExecuteStateMachine
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - states:StartExecution
+            Resource: '*'
+  SageMakerStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      DefinitionString:
+        Fn::Sub: "{\n  \"StartAt\": \"cleaning\",\n  \"States\": {\n    \"cleaning\"\
+          : {\n      \"Type\": \"Task\",\n      \"Resource\": \"${cleaningFunction.Arn}\"\
+          ,\n      \"ResultPath\": \"$\",\n      \"Next\": \"train_test\"\n    },\n\
+          \    \"train_test\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"\
+          ${traintestFunction.Arn}\",\n      \"ResultPath\": \"$\",\n      \"Next\"\
+          : \"training\"\n      },\n    \"training\": {\n      \"Type\": \"Task\"\
+          ,\n      \"Resource\": \"${trainingFunction.Arn}\",\n      \"ResultPath\"\
+          : \"$\",\n      \"Next\": \"lam\"\n    },\n    \"lam\": {\n      \"Type\"\
+          : \"Task\",\n      \"Resource\": \"${predictionFunction.Arn}\",\n      \"\
+          ResultPath\": \"$\",\n      \"End\": true\n    }\n  }\n}"
+      RoleArn:
+        Fn::GetAtt:
+        - StepFunctionExecutionRole
+        - Arn
+  StepFunctionExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+              Fn::Sub: states.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      Policies:
+      - PolicyName: StatesExecutionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource: '*'
+  cleaningFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: cleaning.lambda_handler
+      Runtime: python3.6
+      CodeUri: s3://aman19/cleaning.py
+      Description: Cleaning
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:PutObject
+          Resource: '*'
+  traintestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: train_test.lambda_handler
+      Runtime: python3.6
+      CodeUri: s3://aman19/train_test.py
+      Description: traintest divide
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - s3:PutObject
+          - s3:GetObject
+          Resource: '*'
+  trainingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: training.lambda_handler
+      Runtime: python3.6
+      CodeUri: s3://aman19/training.py
+      Description: ' training model to invokable endpoint'
+      Timeout: 10
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sagemaker:training
+          Resource: '*'
+  predictionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: prediction.lambda_handler
+      Runtime: python3.6
+      CodeUri: s3://aman19/prediction.py
+      Description: prediction
+      Policies:
+      - AWSLambdaBasicExecutionRole
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - sagemaker:predictor
+          - sagemaker:getpredictionresult
+          Resource: '*'
+Outputs:
+  S3BucketName:
+    Description: S3 bucket that will hold training data and model artifacts
+    Value: aman19
