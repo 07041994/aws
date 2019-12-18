@@ -25,7 +25,7 @@ def lambda_handler(event,context):
     #file=event['file']
     #s3_bucket = 'aman199'  # replace with an existing bucket if needed
     #s3_prefix = 'product3'
-    #s3_client = boto3.client('s3',aws_access_key_id='AKIAIRR6OFVAQA2UHCGQ',aws_secret_access_key='N2wG8jgYWAOW8vk3F5XA1X5frwLWB78vOLhc5Avj')
+    #s3_client = boto3.client('s3',aws_access_key_id=API_Key,aws_secret_access_key=Secret_key)
     #response = s3_client.get_object(Bucket="aman199",Key=file)
     #p = pd.read_csv(response["Body"])
     #p2=p.iloc[:,1:]
